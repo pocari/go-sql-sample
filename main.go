@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -15,20 +16,24 @@ func main() {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("select Host, User from user")
-	if err != nil {
-		panic(err)
-	}
-	defer rows.Close()
+	// context.WithCancelとかを使ってキャンセルできるようになってるらしい
+	// 1秒後に実行中のsqlをキャンセルする、みたいなことができる
+	//
+	// ctx, cancel := context.WithCancel(context.Background())
+	// go func() {
+	// 	time.Sleep(time.Second * 1)
+	// 	cancel()
+	// }
 
+	ctx := context.Background()
 	for i := 0; i < 100; i++ {
 		var host string
 		var user string
-		if err := db.QueryRow("select Host, user from user limit 1").Scan(&host, &user); err != nil {
+		if err := db.QueryRowContext(ctx, "select Host, user from user limit 1").Scan(&host, &user); err != nil {
 			panic(err)
 		}
 		fmt.Printf("%05d: (Host, User) ... (%s, %s)\n", i, host, user)
 
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Millisecond * 500)
 	}
 }
